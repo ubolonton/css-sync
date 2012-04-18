@@ -1,5 +1,5 @@
 // var app = require("http").createServer(handler);
-var io = require("socket.io").listen(8888);
+var io = require("socket.io").listen(8888, {log: false});
 var url = require("url");
 var fs = require("fs");
 
@@ -76,11 +76,11 @@ function createWatcher(url) {
       var index = clientSockets.indexOf(socket);
       if (index > -1)
         clientSockets.splice(index, 1);
-      log("[ ----- " + clientSockets.length + "]" + url);
+      log("[ ----- " + clientSockets.length + "] " + url);
       return this;
     },
     stopWatching: function() {
-      log("Stop watching " + url);
+      log("Stop watching  {" + url + " " + fileName + "}");
       w.close(); return this;
     },
     countClient: function() {
