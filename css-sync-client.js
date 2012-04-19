@@ -23,24 +23,7 @@ var createListener = function(server) {
   var s = io.connect(server);
   var urlToEl = {};
 
-  s.on("hi", function(data) {
-    // console.log("From server: " + JSON.stringify(data));
-  });
-
-  s.on("change", function(data) {
-    var url = data.url;
-    var el = urlToEl[url];
-    // Reload
-    if (el) {
-      // TODO: Randomize?
-      var date = new Date();
-      url = url + "?ts=" + encodeURIComponent(date);
-      el.setAttribute("href", url);
-      // console.log("change:" + url + "?ts=" + date);
-    };
-  });
-
-  return {
+  var listener = {
     socket: s,
     urlToEl: urlToEl,
 
@@ -77,9 +60,29 @@ var createListener = function(server) {
       });
     }
   };
+
+  s.on("hi", function(data) {
+    console.log("From server: " + JSON.stringify(data));
+    listener.register(_.values(urlToEl));
+  });
+
+  s.on("change", function(data) {
+    var url = data.url;
+    var el = urlToEl[url];
+    // Reload
+    if (el) {
+      // TODO: Randomize?
+      var date = new Date();
+      url = url + "?ts=" + encodeURIComponent(date);
+      el.setAttribute("href", url);
+      // console.log("change:" + url + "?ts=" + date);
+    }
+  });
+
+  return listener;
 };
 
 $(function() {
-  window.l = createListener("192.168.1.106:8888")
+  window.l = createListener(window.location.hostname + ":8888")
     .register($("link[href^='/css/rf.css']"));
 });
