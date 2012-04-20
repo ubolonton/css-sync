@@ -47,14 +47,18 @@ function createWatcher(url) {
     return undefined;
   }
 
+  // List of sockets interested in this file
   var clientSockets = [];
 
+  // Start watching
   var w = fs.watch(fileName, {
     persistent: true,
     interval: 0
   }, function(event, file_name) {
     log("[" + event + " " + clientSockets.length + "] " + url);
-    if (event === "change") {
+    // Notify clients that this file has changed
+    if (event === "change" ||
+        event === "rename") {   // Hmm...
       for (var i = 0; i < clientSockets.length; i++) {
         clientSockets[i].emit("change", {
           url: url
@@ -65,6 +69,7 @@ function createWatcher(url) {
 
   log("Start watching {" + url + " " + fileName + "}");
 
+  // Watcher API
   return {
     addClient: function(socket) {
       if (clientSockets.indexOf(socket) === -1)
@@ -102,6 +107,7 @@ function register(socket, url) {
     // If no watcher was created, don't do anything
     if (!watcher)
       return;
+
     urlToWatcher[url] = watcher;
   }
 
@@ -132,7 +138,6 @@ io.sockets.on("connection", function(socket) {
 
   socket.on("register", function(data) {
     var urls = data.urls;
-
     for (var i = 0; i < urls.length; i++) {
       register(socket, urls[i]);
     }
@@ -140,7 +145,6 @@ io.sockets.on("connection", function(socket) {
 
   socket.on("unregister", function(data) {
     var urls = data.urls;
-
     for (var i = 0; i < urls.length; i++) {
       unregister(socket, urls[i]);
     }
