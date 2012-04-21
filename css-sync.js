@@ -50,35 +50,22 @@ function createWatcher(url) {
   // List of sockets interested in this file
   var clientSockets = [];
 
-  var w;
-  function persistentFSWatch() {
-    return fs.watch(fileName, {
-      persistent: true,
-      interval: 0
-    }, function(event, file_name) {
-      log("[" + event + " " + clientSockets.length + "] " + url);
+  // XXX: Find out why fs.watch has problem with "git reset --hard"
+  // (stop watching) & "git checkout --" (crash)
+  fs.watchFile(fileName, {
+    persistent: true, interval: 50
+  }, function(prev, curr) {
+    if (prev.mtime.getTime() !== curr.mtime.getTime()) {
+      log("[ change " + clientSockets.length + "] " + url);
+      log(JSON.stringify([prev, curr]));
       // Notify clients that this file has changed
-      if (event === "change" ||
-          // Hmm... (git reset/checkout causes "rename" instead of "change")
-          event === "rename") {
-        for (var i = 0; i < clientSockets.length; i++) {
-          clientSockets[i].emit("change", {
-            url: url
-          });
-        }
+      for (var i = 0; i < clientSockets.length; i++) {
+        clientSockets[i].emit("change", {
+          url: url
+        });
       }
-
-      // HACK (on OSX fs.watch loses "connection" if another file is
-      // renamed into the watched file ("rename"))
-      if (event === "rename") {
-        w.close();
-        w = persistentFSWatch();
-      }
-    });
-  }
-
-  w = persistentFSWatch();
-
+    }
+  });
   log("Start watching {" + url + " " + fileName + "}");
 
   // Watcher API
@@ -98,7 +85,7 @@ function createWatcher(url) {
     },
     stopWatching: function() {
       log("Stop watching  {" + url + " " + fileName + "}");
-      w.close(); return this;
+      fs.unwatchFile(fileName); return this;
     },
     countClient: function() {
       return clientSockets.length;
