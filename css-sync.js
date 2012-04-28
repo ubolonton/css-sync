@@ -136,7 +136,7 @@ function unregister(socket, url) {
 io.sockets.on("connection", function(socket) {
   log("Client connected");
 
-  socket.emit("hi", "Hello there!");
+  socket.emit("hi", "Hello there! You can register css links whose changes you are interested in. I'll tell you when they do.");
 
   socket.on("register", function(data) {
     var urls = data.urls;
