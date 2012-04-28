@@ -1,10 +1,28 @@
-/*global: io: true, $: true, _: true */
+/*global: io: true, $: true */
 
-// XXX: Remove jQuery & underscore dependencies
+// XXX: Remove jQuery dependency
 
 var css_sync = css_sync || {};
 
-(function(io, $, _) {
+(function($) {
+  // Quick, dirty & incorrect functions to avoid depending on underscore
+  function keys(obj) {
+    var ks = [];
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key))
+        ks.push(key);
+    }
+    return ks;
+  }
+  function values(obj) {
+    var vs = [];
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key))
+        vs.push(obj[key]);
+    }
+    return vs;
+  }
+
   var createListener = function(server) {
     function removeParams(href) {
       return href.split("?")[0];
@@ -21,31 +39,33 @@ var css_sync = css_sync || {};
       // file watching).
 
       register: function(elements) {
-        _.each(elements, function(e) {
-          var url = removeParams(e.getAttribute("href"));
+        for (var i = 0; i < elements.length; i++) {
+          var url = removeParams(elements[i].getAttribute("href"));
           if (url) {
             var el = urlToEl[url];
             if (!el) {
-              el = urlToEl[url] = e;
+              el = urlToEl[url] = elements[i];
             }
           }
-        });
+        }
 
         s.emit("register", {
-          urls: _.keys(urlToEl)
+          urls: keys(urlToEl)
         });
 
         return this;
       },
 
       unregister: function(elements) {
-        var urls = _.map(elements, function(e) {
-          return removeParams(e.getAttribute("href"));
-        });
+        var urls = [];
+        var i;
+        for (i = 0; i < elements.length; i++) {
+          urls.push(removeParams(elements[i].getAttribute("href")));
+        }
 
-        _.each(urls, function(url) {
-          delete urlToEl[url];
-        });
+        for (i = 0; i < urls.length; i++) {
+          delete urlToEl[urls[i]];
+        }
 
         s.emit("unregister", {
           urls: urls
@@ -57,7 +77,7 @@ var css_sync = css_sync || {};
 
     s.on("hi", function(data) {
       console.log("From server: " + JSON.stringify(data));
-      listener.register(_.values(urlToEl));
+      listener.register(values(urlToEl));
     });
 
     s.on("change", function(data) {
@@ -79,13 +99,11 @@ var css_sync = css_sync || {};
   $.extend(css_sync, {
     createListener: createListener
   });
-  _.defaults(css_sync, {
-    config: {
-      links: [],                // css link elements whose changes we are interested in
-      hostname: "",
-      port: 8888
-    }
-  });
+  css_sync.config = $.extend({
+    links: [],                // css link elements whose changes we are interested in
+    hostname: "",
+    port: 8888
+  }, css_sync.config);
 
   // Start registering
   $(function() {
@@ -98,5 +116,5 @@ var css_sync = css_sync || {};
     });
   });
 
-}(io, jQuery, _));
+}(jQuery));
 
