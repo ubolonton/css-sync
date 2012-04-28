@@ -1,42 +1,46 @@
 // var app = require("http").createServer(handler);
-var io = require("socket.io").listen(8888, {log: false});
+var app = require("http").createServer(handler);
+var io = require("socket.io").listen(app, {log: false});
 var url = require("url");
 var fs = require("fs");
+var mapping = require("./mapping.js");
+
+// io.configure(function() {
+//   io.set("resource", "/socket/socket.io");
+// });
 
 function log(str) {
   console.log("css-sync > " + str);
 }
 
-// app.listen(8888);
+app.listen(8888);
 
-// function serveJS(response, fileName) {
-//   fs.readFile(fileName, function(error, data) {
-//     if (error) {
-//       log("Error: " + error);
-//       response.writeHead(500);
-//       response.end("");
-//     } else {
-//       response.writeHead(200, { "Content-Type": "text/javascript" });
-//       response.end(data);
-//     }
-//   });
-// }
+function serveJS(response, fileName) {
+  fs.readFile(fileName, function(error, data) {
+    if (error) {
+      log("Error: " + error);
+      response.writeHead(500);
+      response.end("");
+    } else {
+      response.writeHead(200, { "Content-Type": "text/javascript" });
+      response.end(data);
+    }
+  });
+}
 
-// function handler(request, response) {
-//   var path = url.parse(request.url).pathname;
-//   if (path === "/css-sync-client.js") {
-//     serveJS(response, __dirname + "/css-sync-client.js");
-//   }
-// }
+function handler(request, response) {
+  var path = url.parse(request.url).pathname;
+  if (path === "/css-sync-client.js") {
+    serveJS(response, __dirname + "/css-sync-client.js");
+  }
+}
 
 var fileNameToClients = {};
 var urlToWatcher = {};
 
-function urlToFileName(url) {
-  return {
-    "/css/rf.css": "/home/ubolonton/Programming/cogini/bidandbuy-vagrant/bidandbuy/web/html/css/rf.css"
-  }[url];
-}
+var urlToFileName = mapping.urlToFileName || function(url) {
+  return undefined;
+};
 
 function createWatcher(url) {
   // Get the file
@@ -57,7 +61,6 @@ function createWatcher(url) {
   }, function(prev, curr) {
     if (prev.mtime.getTime() !== curr.mtime.getTime()) {
       log("[ change " + clientSockets.length + "] " + url);
-      log(JSON.stringify([prev, curr]));
       // Notify clients that this file has changed
       for (var i = 0; i < clientSockets.length; i++) {
         clientSockets[i].emit("change", {
@@ -73,14 +76,14 @@ function createWatcher(url) {
     addClient: function(socket) {
       if (clientSockets.indexOf(socket) === -1)
         clientSockets.push(socket);
-      log("[ +++++ " + clientSockets.length + "] " + url);
+      log("[ ++++++ " + clientSockets.length + "] " + url);
       return this;
     },
     removeClient: function(socket) {
       var index = clientSockets.indexOf(socket);
       if (index > -1)
         clientSockets.splice(index, 1);
-      log("[ ----- " + clientSockets.length + "] " + url);
+      log("[ ------ " + clientSockets.length + "] " + url);
       return this;
     },
     stopWatching: function() {
