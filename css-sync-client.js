@@ -33,6 +33,21 @@ var css_sync = css_sync || {};
     return href.split("?")[0];
   }
 
+  // FIX: Something more sensible
+  function getRelativeCssLinks() {
+    var all = document.getElementsByTagName("link");
+    var links = [];
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (el.getAttribute("rel") === "stylesheet" &&
+          el.getAttribute("type") === "text/css" &&
+          el.getAttribute("href").search("http") !== 0) {
+        links.push(el);
+      }
+    }
+    return links;
+  }
+
   var createListener = function(server) {
     var s = io.connect(server);
     var urlToEl = {};
@@ -103,7 +118,7 @@ var css_sync = css_sync || {};
   // Default config
   var c = css_sync.config = css_sync.config || {};
   // TODO: default to watching all css links with relative url
-  var links = c.links = c.links || []; // css link elements whose changes we are interested in
+  var links = c.links = c.links || getRelativeCssLinks(); // css link elements whose changes we are interested in
   var port = c.port = c.port || 8888;
   var hostname = c.hostname = c.hostname || "127.0.0.1";
 
