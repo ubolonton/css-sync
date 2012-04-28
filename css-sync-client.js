@@ -1,88 +1,102 @@
 /*global: io: true, $: true, _: true */
-/*jshint: browser: true */
 
-// var s = io.connect("127.0.0.1:8888");
+// XXX: Remove jQuery & underscore dependencies
 
-// var Listener = function(server) {
-//   var s = io.connect(server);
+var css_sync = css_sync || {};
 
-//   this.socket = s;
-//   this.tags = [];
-
-//   s.on("hi", function(data) {
-//     console.log("From server: " + JSON.stringify(data));
-//   });
-// };
-
-
-var createListener = function(server) {
-  function removeParams(href) {
-    return href.split("?")[0];
-  }
-
-  var s = io.connect(server);
-  var urlToEl = {};
-
-  var listener = {
-    socket: s,
-    urlToEl: urlToEl,
-
-    // TODO: Register/unregister urls, with callbacks instead (remote
-    // file watching).
-
-    register: function(elements) {
-      _.each(elements, function(e) {
-        var url = removeParams(e.getAttribute("href"));
-        if (url) {
-          var el = urlToEl[url];
-          if (!el) {
-            el = urlToEl[url] = e;
-          }
-        }
-      });
-
-      s.emit("register", {
-        urls: _.keys(urlToEl)
-      });
-    },
-
-    unregister: function(elements) {
-      var urls = _.map(elements, function(e) {
-        return removeParams(e.getAttribute("href"));
-      });
-
-      _.each(urls, function(url) {
-        delete urlToEl[url];
-      });
-
-      s.emit("unregister", {
-        urls: urls
-      });
+(function(io, $, _) {
+  var createListener = function(server) {
+    function removeParams(href) {
+      return href.split("?")[0];
     }
+
+    var s = io.connect(server);
+    var urlToEl = {};
+
+    var listener = {
+      socket: s,
+      urlToEl: urlToEl,
+
+      // TODO: Register/unregister urls, with callbacks instead (remote
+      // file watching).
+
+      register: function(elements) {
+        _.each(elements, function(e) {
+          var url = removeParams(e.getAttribute("href"));
+          if (url) {
+            var el = urlToEl[url];
+            if (!el) {
+              el = urlToEl[url] = e;
+            }
+          }
+        });
+
+        s.emit("register", {
+          urls: _.keys(urlToEl)
+        });
+
+        return this;
+      },
+
+      unregister: function(elements) {
+        var urls = _.map(elements, function(e) {
+          return removeParams(e.getAttribute("href"));
+        });
+
+        _.each(urls, function(url) {
+          delete urlToEl[url];
+        });
+
+        s.emit("unregister", {
+          urls: urls
+        });
+
+        return this;
+      }
+    };
+
+    s.on("hi", function(data) {
+      console.log("From server: " + JSON.stringify(data));
+      listener.register(_.values(urlToEl));
+    });
+
+    s.on("change", function(data) {
+      var url = data.url;
+      var el = urlToEl[url];
+      // Reload
+      if (el) {
+        // TODO: Randomize?
+        var date = new Date();
+        url = url + "?ts=" + encodeURIComponent(date);
+        el.setAttribute("href", url);
+        // console.log("change:" + url + "?ts=" + date);
+      }
+    });
+
+    return listener;
   };
 
-  s.on("hi", function(data) {
-    console.log("From server: " + JSON.stringify(data));
-    listener.register(_.values(urlToEl));
+  $.extend(css_sync, {
+    createListener: createListener
   });
-
-  s.on("change", function(data) {
-    var url = data.url;
-    var el = urlToEl[url];
-    // Reload
-    if (el) {
-      // TODO: Randomize?
-      var date = new Date();
-      url = url + "?ts=" + encodeURIComponent(date);
-      el.setAttribute("href", url);
-      // console.log("change:" + url + "?ts=" + date);
+  _.defaults(css_sync, {
+    config: {
+      links: [],                // css link elements whose changes we are interested in
+      hostname: "",
+      port: 8888
     }
   });
 
-  return listener;
-};
+  // Start registering
+  $(function() {
+    var c = css_sync.config;
+    var links = c.links;
+    var host = c.hostname + ":" + c.port;
 
-$(function() {
-  window.l = createListener(window.location.hostname + ":8888")
-    .register($("link[href^='/css/rf.css']"));
-});
+    $.extend(css_sync, {
+      listener: createListener(host).register(links)
+    });
+  });
+
+}(io, jQuery, _));
+
