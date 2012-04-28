@@ -1,10 +1,11 @@
-/*global: io: true, $: true */
+/*global: io: true, */
+/*jshint: browser: true */
 
-// XXX: Remove jQuery dependency
+// This file, and socket.io.js are served by the watching server
 
 var css_sync = css_sync || {};
 
-(function($) {
+(function() {
   // Quick, dirty & incorrect functions to avoid depending on underscore
   function keys(obj) {
     var ks = [];
@@ -23,11 +24,16 @@ var css_sync = css_sync || {};
     return vs;
   }
 
-  var createListener = function(server) {
-    function removeParams(href) {
-      return href.split("?")[0];
-    }
+  // TODO: Randomize?
+  function addReloadParam(url) {
+    return url + "?css_sync_ts=" + encodeURIComponent(new Date());
+  }
 
+  function removeParams(href) {
+    return href.split("?")[0];
+  }
+
+  var createListener = function(server) {
     var s = io.connect(server);
     var urlToEl = {};
 
@@ -76,7 +82,8 @@ var css_sync = css_sync || {};
     };
 
     s.on("hi", function(data) {
-      console.log("From server: " + JSON.stringify(data));
+      if (console)
+        console.log("From server: " + JSON.stringify(data));
       listener.register(values(urlToEl));
     });
 
@@ -84,37 +91,44 @@ var css_sync = css_sync || {};
       var url = data.url;
       var el = urlToEl[url];
       // Reload
-      if (el) {
-        // TODO: Randomize?
-        var date = new Date();
-        url = url + "?ts=" + encodeURIComponent(date);
-        el.setAttribute("href", url);
-        // console.log("change:" + url + "?ts=" + date);
-      }
+      if (el)
+        el.setAttribute("href", addReloadParam(url));
     });
 
     return listener;
   };
 
-  $.extend(css_sync, {
-    createListener: createListener
+  css_sync.createListener = createListener;
+
+  // Default config
+  var c = css_sync.config = css_sync.config || {};
+  // TODO: default to watching all css links with relative url
+  var links = c.links = c.links || []; // css link elements whose changes we are interested in
+  var port = c.port = c.port || 8888;
+  var hostname = c.hostname = c.hostname || "127.0.0.1";
+
+  var host = hostname + ":" + port;
+
+  // Load socket.io, then create a listener
+  function loadJS(src, callback) {
+    // Create script tag
+    var el = document.createElement("script");
+    el.setAttribute("type", "text/javascript");
+    el.setAttribute("src", src);
+
+    // Register callback
+    el.onload = callback;
+    el.onreadystatechange = function() {
+      if (["complete", "loaded"].indexOf(this.readyState) > -1)
+        callback();
+    };
+
+    // Add the tag to <head></head>
+    document.getElementsByTagName("head")[0].appendChild(el);
+  }
+  loadJS("http://" + host + "/socket.io/socket.io.js", function() {
+    css_sync.listener = createListener(host).register(links);
   });
-  css_sync.config = $.extend({
-    links: [],                // css link elements whose changes we are interested in
-    hostname: "",
-    port: 8888
-  }, css_sync.config);
 
-  // Start registering
-  $(function() {
-    var c = css_sync.config;
-    var links = c.links;
-    var host = c.hostname + ":" + c.port;
-
-    $.extend(css_sync, {
-      listener: createListener(host).register(links)
-    });
-  });
-
-}(jQuery));
+}());
 
