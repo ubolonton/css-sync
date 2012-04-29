@@ -1,20 +1,24 @@
-// var app = require("http").createServer(handler);
+// Dependencies
 var app = require("http").createServer(handler);
 var io = require("socket.io").listen(app, {log: false});
 var url = require("url");
 var fs = require("fs");
-var mapping = require("./mapping.js");
 
-// io.configure(function() {
-//   io.set("resource", "/socket/socket.io");
-// });
+// Config
+var config = require("./config.js");
+var port = config.port || 8888;
+var urlToFileName = config.urlToFileName || function(url) {
+  return undefined;
+};
+
+// Keep track of which watcher handles which url
+var urlToWatcher = {};
 
 function log(str) {
   console.log("css-sync > " + str);
 }
 
-app.listen(8888);
-
+// Serve file as javascript
 function serveJS(response, fileName) {
   fs.readFile(fileName, function(error, data) {
     if (error) {
@@ -28,20 +32,15 @@ function serveJS(response, fileName) {
   });
 }
 
+// Host the client-side js
 function handler(request, response) {
   var path = url.parse(request.url).pathname;
-  if (path === "/css-sync-client.js") {
+  if (path === "/css-sync-client.js")
     serveJS(response, __dirname + "/css-sync-client.js");
-  }
 }
 
-var fileNameToClients = {};
-var urlToWatcher = {};
-
-var urlToFileName = mapping.urlToFileName || function(url) {
-  return undefined;
-};
-
+// A watcher has multiple clients, which are notified everytime the
+// watched file (url) is changed
 function createWatcher(url) {
   // Get the file
   var fileName = urlToFileName(url);
@@ -55,7 +54,7 @@ function createWatcher(url) {
   var clientSockets = [];
 
   // XXX: Find out why fs.watch has problem with "git reset --hard"
-  // (stop watching) & "git checkout --" (crash)
+  // (stop watching) & "git checkout --" (crash) on OS X
   fs.watchFile(fileName, {
     persistent: true, interval: 50
   }, function(prev, curr) {
@@ -88,7 +87,8 @@ function createWatcher(url) {
     },
     stopWatching: function() {
       log("Stop watching  {" + url + " " + fileName + "}");
-      fs.unwatchFile(fileName); return this;
+      fs.unwatchFile(fileName);
+      return this;
     },
     countClient: function() {
       return clientSockets.length;
@@ -132,6 +132,8 @@ function unregister(socket, url) {
     delete urlToWatcher[url];
   }
 }
+
+app.listen(port);
 
 io.sockets.on("connection", function(socket) {
   log("Client connected");

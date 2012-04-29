@@ -18,7 +18,7 @@ npm install socket.io
 #+end_src
 
 * Usage
-- Edit =mapping.js= to tell the server which url should map to which
+- Edit =config.js= to tell the server which url should map to which
   file on disk. For example:
 #+begin_src javascript
 function urlToFileName(url) {
@@ -42,3 +42,7 @@ node css-sync
 
 - Load the page. Anytime a css file is saved the browser will reload
   the associated css link without refreshing.
+
+* TODO Features to be considered
+- Sync changes from browser css editors back to server (they have
+  niceties, after all)?
