@@ -1,6 +1,6 @@
 // Dependencies
 var app = require("http").createServer(handler);
-var io = require("socket.io").listen(app, {log: false});
+var io = require("socket.io").listen(app);
 var url = require("url");
 var fs = require("fs");
 

@@ -1,11 +1,10 @@
-/*global: io: true, */
-/*jshint: browser: true */
+/*global: io: true, window: true */
 
 // This file, and socket.io.js are served by the watching server
 
 var css_sync = css_sync || {};
 
-(function() {
+(function(document) {
   // Quick, dirty & incorrect functions to avoid depending on underscore
   function keys(obj) {
     var ks = [];
@@ -97,7 +96,7 @@ var css_sync = css_sync || {};
     };
 
     s.on("hi", function(data) {
-      if (console)
+      if (console && console.log)
         console.log("From server: " + JSON.stringify(data));
       listener.register(values(urlToEl));
     });
@@ -120,7 +119,12 @@ var css_sync = css_sync || {};
   // TODO: default to watching all css links with relative url
   var links = c.links = c.links || getRelativeCssLinks(); // css link elements whose changes we are interested in
   var port = c.port = c.port || 8888;
-  var hostname = c.hostname = c.hostname || "127.0.0.1";
+  // FIX: duplicated code in css-reload.js
+  var hostname = c.hostname = (
+    !c.hostname || c.hostname === "localhost" ?
+      "127.0.0.1" :             // default to 127.0.0.1 if no sensible host name is specified
+      c.hostname
+  );
 
   var host = hostname + ":" + port;
 
@@ -145,5 +149,5 @@ var css_sync = css_sync || {};
     css_sync.listener = createListener(host).register(links);
   });
 
-}());
+}(window.document));
 
