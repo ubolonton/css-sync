@@ -15,7 +15,7 @@ var css_sync = css_sync || {};
   c.hostname = (!location.hostname || location.hostname == "localhost" ?
                 "127.0.0.1" :
                 location.hostname);
-  // c.port = 8888;
+  c.port = 8888;
   // Link elements to watch, (default to watching all css links with relative url
   // c.links = $("link[href^='/css/rf.css']").toArray();
 

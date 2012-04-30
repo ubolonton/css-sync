@@ -6,7 +6,7 @@ module.exports = {
   urlToFileName: function(url) {
     return {
       // Custom mapping here
-      "/css/site.css": "/home/ubolonton/project-a/css/site.css"
+      // "/css/site.css": "/home/ubolonton/project-a/css/site.css"
     }[url];
   }
 };
