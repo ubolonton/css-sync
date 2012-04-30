@@ -7,12 +7,16 @@ var fs = require("fs");
 // Config
 var config = require("./config.js");
 var port = config.port || 8888;
-var urlToFileName = config.urlToFileName || function(url) {
+var getFileName = config.getFileName || function(url, location) {
   return undefined;
 };
 
+function(url) {
+
+}
+
 // Keep track of which watcher handles which url
-var urlToWatcher = {};
+var fileNameToWatcher = {};
 
 function log(str) {
   console.log("css-sync > " + str);
@@ -39,13 +43,16 @@ function handler(request, response) {
     serveJS(response, __dirname + "/css-sync-client.js");
 }
 
+function notify(socket, fileName) {
+  socket.get("location", function(error, location) {
+
+  });
+}
+
 // A watcher has multiple clients, which are notified everytime the
 // watched file (url) is changed
-function createWatcher(url) {
-  // Get the file
-  var fileName = urlToFileName(url);
+function createWatcher(fileName) {
   if (!fileName) {
-    log("Don't know what file " + url +  " is mapped to");
     // TODO: Raise exception instead
     return undefined;
   }
@@ -59,7 +66,7 @@ function createWatcher(url) {
     persistent: true, interval: 50
   }, function(prev, curr) {
     if (prev.mtime.getTime() !== curr.mtime.getTime()) {
-      log("[ change " + clientSockets.length + "] " + url);
+      log("[ change " + clientSockets.length + "] " + fileName);
       // Notify clients that this file has changed
       for (var i = 0; i < clientSockets.length; i++) {
         clientSockets[i].emit("change", {
@@ -68,25 +75,25 @@ function createWatcher(url) {
       }
     }
   });
-  log("Start watching {" + url + " " + fileName + "}");
+  log("Start watching " + fileName);
 
   // Watcher API
   return {
     addClient: function(socket) {
       if (clientSockets.indexOf(socket) === -1)
         clientSockets.push(socket);
-      log("[ ++++++ " + clientSockets.length + "] " + url);
+      log("[ ++++++ " + clientSockets.length + "] " + fileName);
       return this;
     },
     removeClient: function(socket) {
       var index = clientSockets.indexOf(socket);
       if (index > -1)
         clientSockets.splice(index, 1);
-      log("[ ------ " + clientSockets.length + "] " + url);
+      log("[ ------ " + clientSockets.length + "] " + fileName);
       return this;
     },
     stopWatching: function() {
-      log("Stop watching  {" + url + " " + fileName + "}");
+      log("Stop watching " + fileName);
       fs.unwatchFile(fileName);
       return this;
     },
@@ -97,40 +104,49 @@ function createWatcher(url) {
 }
 
 function register(socket, url) {
-  // Create or get the watcher watching the file
-  var watcher = urlToWatcher[url];
-  if (!watcher) {
-    try {
-      watcher = createWatcher(url);
-    } catch (exception) {
-      log("Failed to watch " + url);
-      return;
+  // Use memory store, so don't f**king care about error
+  socket.get("location", function(error, location) {
+    var fileName = getFileName(url, location);
+
+    // Create or get the watcher watching the file
+    var watcher = fileNameToWatcher[fileName];
+    if (!watcher) {
+      try {
+        watcher = createWatcher(fileName);
+      } catch (exception) {
+        log("Failed to watch " + fileName);
+        return;
+      }
+      // If no watcher was created, don't do anything
+      if (!watcher)
+        return;
+
+      fileNameToWatcher[fileName] = watcher;
     }
-    // If no watcher was created, don't do anything
-    if (!watcher)
-      return;
 
-    urlToWatcher[url] = watcher;
-  }
-
-  // Add this socket to the list to be notified
-  watcher.addClient(socket);
+    // Add this socket to the list to be notified
+    watcher.addClient(socket);
+  });
 }
 
 function unregister(socket, url) {
-  var watcher = urlToWatcher[url];
-  if (!watcher) {
-    log("Not currently watching " + url);
-    return;
-  }
+  socket.get("location", function(error, location) {
+    var fileName = getFileName(url, location);
 
-  watcher.removeClient(socket);
+    var watcher = fileNameToWatcher[fileName];
+    if (!watcher) {
+      log("Not currently watching " + fileName);
+      return;
+    }
 
-  // If no client left, stop watching and remove it
-  if (watcher.countClient() < 1) {
-    watcher.stopWatching();
-    delete urlToWatcher[url];
-  }
+    watcher.removeClient(socket);
+
+    // If no client left, stop watching and remove it
+    if (watcher.countClient() < 1) {
+      watcher.stopWatching();
+      delete fileNameToWatcher[fileName];
+    }
+  });
 }
 
 app.listen(port);
@@ -142,9 +158,11 @@ io.sockets.on("connection", function(socket) {
 
   socket.on("register", function(data) {
     var urls = data.urls;
-    for (var i = 0; i < urls.length; i++) {
-      register(socket, urls[i]);
-    }
+    socket.set("location", data.location || {}, function() {
+      for (var i = 0; i < urls.length; i++) {
+        register(socket, urls[i]);
+      }
+    });
   });
 
   socket.on("unregister", function(data) {
@@ -156,8 +174,8 @@ io.sockets.on("connection", function(socket) {
 
   socket.on("disconnect", function() {
     log("Disconnect");
-    for (var url in urlToWatcher) {
-      unregister(socket, url);
+    for (var fileName in fileNameToWatcher) {
+      unregister(socket, fileName);
     }
   });
 

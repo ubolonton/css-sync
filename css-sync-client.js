@@ -70,6 +70,7 @@ var css_sync = css_sync || {};
         }
 
         s.emit("register", {
+          location: window.location,
           urls: keys(urlToEl)
         });
 
