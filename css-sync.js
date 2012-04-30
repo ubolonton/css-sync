@@ -1,15 +1,22 @@
 // Dependencies
 var app = require("http").createServer(handler);
-var io = require("socket.io").listen(app);
+var io = require("socket.io").listen(app, {log: false});
 var url = require("url");
 var fs = require("fs");
 
 // Config
 var config = require("./config.js");
 var port = config.port || 8888;
-var urlToFileName = config.urlToFileName || function(url) {
-  return undefined;
-};
+function urlToFileName(url) {
+  var firstTry = config.urlToFileName || function(url) { return undefined; };
+  var fileName = firstTry(url);
+  if (!fileName) {
+    // XXX: Assume the folder css-sync is run from is the under the
+    // top-level folder of the site
+    fileName =  __dirname + "/.." + (url.search("/") === 0 ? url : "/" + url);
+  }
+  return fileName;
+}
 
 // Keep track of which watcher handles which url
 var urlToWatcher = {};
