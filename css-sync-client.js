@@ -143,7 +143,7 @@ var css_sync = css_sync || {};
     };
 
     // Add the tag to <head></head>
-    document.getElementsByTagName("head")[0].appendChild(el);
+    document.head.appendChild(el);
   }
   loadJS("http://" + host + "/socket.io/socket.io.js", function() {
     css_sync.listener = createListener(host).register(links);

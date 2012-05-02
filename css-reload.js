@@ -23,5 +23,5 @@ var css_sync = css_sync || {};
   var el = document.createElement("script");
   el.setAttribute("type", "text/javascript");
   el.setAttribute("src", "http://" + c.hostname + ":" + c.port + "/css-sync-client.js");
-  document.getElementsByTagName("body")[0].appendChild(el);
+  document.body.appendChild(el);
 }(window.location, window.document));
