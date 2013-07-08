@@ -21,8 +21,10 @@ var css_sync = css_sync || {};
   // c.links = $("link[href^='/css/rf.css']").toArray();
 
   // Load the main client
-  var el = document.createElement("script");
-  el.setAttribute("type", "text/javascript");
-  el.setAttribute("src", "http://" + c.hostname + ":" + c.port + "/css-sync-client.js");
-  document.body.appendChild(el);
+  document.onload = function() {
+    var el = document.createElement("script");
+    el.setAttribute("type", "text/javascript");
+    el.setAttribute("src", "http://" + c.hostname + ":" + c.port + "/css-sync-client.js");
+    document.body.appendChild(el);
+  };
 }(window.location, window.document));
