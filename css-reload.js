@@ -9,6 +9,7 @@
 var css_sync = css_sync || {};
 
 (function(location, document) {
+  var loaded = false;
   // Put configuration here
   var c = css_sync.config = css_sync.config || {
     "port": 8888
@@ -21,10 +22,17 @@ var css_sync = css_sync || {};
   // c.links = $("link[href^='/css/rf.css']").toArray();
 
   // Load the main client
-  document.onload = function() {
+  var doLoad = function() {
+    if (loaded)
+      return;
     var el = document.createElement("script");
     el.setAttribute("type", "text/javascript");
     el.setAttribute("src", "http://" + c.hostname + ":" + c.port + "/css-sync-client.js");
     document.body.appendChild(el);
+    loaded = true;
   };
+  // FIX HACK TODO Sigh, browsers
+  document.onload = doLoad;
+  document.addEventListener("DOMContentLoaded", doLoad);
+  window.onload = doLoad;
 }(window.location, window.document));
