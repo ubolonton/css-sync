@@ -2,9 +2,18 @@
   "name": "css-sync",
   "version": "0.1.0",
   "description": "Live-reloading css",
+  "author": "Nguyễn Tuấn Anh <ubolonton@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/ubolonton/css-sync.git"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/ubolonton/css-sync/raw/master/LICENSE"
+  },
+  "bugs": {
+    "email": "ubolonton@gmail.com",
+    "url": "https://github.com/ubolonton/css-sync/issues"
   },
   "dependencies": {
     "socket.io": "0.9.16"
