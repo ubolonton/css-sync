@@ -4,8 +4,11 @@ var io = require("socket.io").listen(app, {log: false});
 var url = require("url");
 var fs = require("fs");
 
+var configFile = process.argv[2] || "./config.js";
+
 // Config
-var config = require("./config.js");
+var config = require(configFile);
+
 var port = config.port || 8888;
 function urlToFileName(url) {
   var firstTry = config.urlToFileName || function(url) { return undefined; };
